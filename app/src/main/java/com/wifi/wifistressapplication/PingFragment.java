@@ -91,6 +91,13 @@ public class PingFragment extends Fragment {
                 }
             }
         });
+//        View.OnClickListener mDestAddressListener = new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                mDestAddress.setText("");
+//            }
+//        };
+//        mDestAddress.setOnClickListener(mDestAddressListener);
     }
 
     private Runnable pingThread = new Runnable() {
