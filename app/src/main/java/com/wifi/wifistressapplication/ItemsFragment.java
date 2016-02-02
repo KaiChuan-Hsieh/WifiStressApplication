@@ -55,6 +55,12 @@ public class ItemsFragment extends Fragment {
                         ft.addToBackStack(null);
                         ft.commit();
                         break;
+                    case 4:
+                        FtpFragment mFtpFragment = new FtpFragment();
+                        ft.replace(R.id.fragment_container, mFtpFragment);
+                        ft.addToBackStack(null);
+                        ft.commit();
+                        break;
                     default:
                         Toast.makeText(getContext(), "Not yet implement!!", Toast.LENGTH_SHORT).show();
                         break;

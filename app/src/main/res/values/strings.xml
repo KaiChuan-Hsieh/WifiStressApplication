@@ -5,6 +5,7 @@
         <item>Suspend/Resume Stress</item>
         <item>Ping Stress</item>
         <item>Hotspot On/Off Stress</item>
+        <item>FTP Stress</item>
     </string-array>
     <string name="wifistate_enabling">Enabling</string>
     <string name="wifistate_enabled">Enabled</string>
