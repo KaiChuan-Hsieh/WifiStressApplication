@@ -142,8 +142,8 @@ public class SuspendResumeFragment extends Fragment {
                     getActivity().unregisterReceiver(mScreenStateReceiver);
                     if (wakeLock.isHeld())
                         wakeLock.release();
-                    mTimer.cancel();
                     if (Build.VERSION.SDK_INT < 23  || Settings.System.canWrite(getActivity())) {
+                        mTimer.cancel();
                         mLeftTime.setText("");
                         Settings.System.putInt(getActivity().getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, mScreenOffTimeout);
                     } else {
