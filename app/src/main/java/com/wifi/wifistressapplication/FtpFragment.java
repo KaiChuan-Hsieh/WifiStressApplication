@@ -2,11 +2,13 @@ package com.wifi.wifistressapplication;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.jar.Manifest;
 
 /**
  * Created by kirt-server on 2016/2/1.
@@ -39,15 +42,19 @@ public class FtpFragment extends Fragment {
     private EditText testRounds;
     private EditText testDuration;
     private ToggleButton mBtn;
-    private long startTime;
-    private long endTime;
-    private double avgBandwidth = 0;
+    private int downCount = 0;
     private boolean testStarted = false;
     private int totalRounds = 0;
     private String ftpUrl;
     private CountDownTimer mTimer;
     private TextView mLeftTime;
+    private TextView mDownCount;
+    private TextView mAvgBandwidth;
     private ProgressDialog mProgressDialog;
+    private long startTime;
+    private long endTime;
+    private long downTime;
+    private double avgBandwidth = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -67,6 +74,8 @@ public class FtpFragment extends Fragment {
         testDuration = (EditText) activity.findViewById(R.id.duration);
         mBtn = (ToggleButton) activity.findViewById(R.id.button);
         mLeftTime = (TextView) activity.findViewById(R.id.left_time);
+        mDownCount = (TextView) activity.findViewById(R.id.down_count);
+        mAvgBandwidth = (TextView) activity.findViewById(R.id.avg_bandwidth);
 
         mProgressDialog = new ProgressDialog(getContext());
         mProgressDialog.setTitle("Downloading...");
@@ -74,6 +83,7 @@ public class FtpFragment extends Fragment {
         mProgressDialog.setProgress(ProgressDialog.STYLE_HORIZONTAL);
         mProgressDialog.setMax(100);
         mProgressDialog.setCancelable(false);
+        verifyStoragePermissions(getActivity());
 
         mBtn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -89,6 +99,8 @@ public class FtpFragment extends Fragment {
                     ftpUrl = String.format("ftp://%s:%s@%s/%s", user, pwd, dest, targetPath);
                     Log.i(TAG, "URL: " + ftpUrl);
                     int duration = Integer.parseInt(testDuration.getText().toString());
+                    mDownCount.setText("0");
+                    mAvgBandwidth.setText("0");
                     mTimer = new CountDownTimer(duration*1000, 1000) {
                         @Override
                         public void onTick(long millisUntilFinished) {
@@ -153,6 +165,7 @@ public class FtpFragment extends Fragment {
                     if (file.exists()) {
                         fileLength = file.length();
                         downPath = localPath + ".test";
+                        downCount++;
                     }
                     FileOutputStream fos = new FileOutputStream(downPath);
                     byte[] buffer = new byte[BUFFER_SIZE];
@@ -160,9 +173,8 @@ public class FtpFragment extends Fragment {
                     URL url = new URL(params[i]);
                     URLConnection conn = url.openConnection();
                     InputStream is = conn.getInputStream();
-
-                    long downLength = 0;
                     startTime = System.currentTimeMillis();
+                    long downLength = 0;
                     while ((byteRead = is.read(buffer)) != -1) {
                         downLength += byteRead;
                         fos.write(buffer, 0, byteRead);
@@ -174,7 +186,7 @@ public class FtpFragment extends Fragment {
                     is.close();
                     fos.close();
                     endTime = System.currentTimeMillis();
-
+                    downTime = endTime-startTime;
                     if (!isDownloadSuccessful(localPath, downPath)) {
                         res = false;
                         break;
@@ -219,8 +231,9 @@ public class FtpFragment extends Fragment {
             switch (msg.what) {
                 case DOWNLOAD_COMPLETE:
                     Log.i(TAG, "DOWNLOAD_COMPLETE received!");
-                    totalRounds--;
-                    if (testStarted && totalRounds > 0) {
+                    mDownCount.setText(String.format("%d", downCount));
+                    mAvgBandwidth.setText(String.format("%.2f", avgBandwidth));
+                    if (testStarted && downCount<totalRounds) {
                         mTimer.start();
                     } else {
                         mBtn.setChecked(false);
@@ -228,6 +241,7 @@ public class FtpFragment extends Fragment {
                     break;
                 case DOWNLOAD_FAILED:
                     Log.i(TAG, "DOWNLOAD_FAILED received!");
+                    mBtn.setChecked(false);
                     break;
             }
         }
@@ -237,8 +251,7 @@ public class FtpFragment extends Fragment {
         File localFile = new File(local);
         File downFile = new File(down);
         if (localFile.length() == downFile.length()) {
-            avgBandwidth = (double) downFile.length()*1000/(double) (endTime - startTime);
-            avgBandwidth = avgBandwidth/1024/1024;
+            if (downCount>0) calBandwidth(downFile.length(), downTime);
             return true;
         }
         return false;
@@ -251,5 +264,25 @@ public class FtpFragment extends Fragment {
             res = str;
         }
         return res;
+    }
+
+    private void calBandwidth(long length, long time) {
+        double cur = length*1000/time;
+        cur = cur/1024/1024;
+        Log.d(TAG, "curDownBandwidth = " + cur);
+        avgBandwidth = (avgBandwidth*(downCount-1)+cur)/downCount;
+    }
+
+    private void verifyStoragePermissions(Activity activity) {
+        final int REQUEST_EXTERNAL_STORAGE = 1;
+        final String[] PERMISSIONS_STORAGE = {
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+        int permission = ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+        }
     }
 }

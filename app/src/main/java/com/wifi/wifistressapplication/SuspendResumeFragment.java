@@ -93,12 +93,6 @@ public class SuspendResumeFragment extends Fragment {
         intent.setAction(ALARM_ACTION);
         mPendingIntent = PendingIntent.getBroadcast(getContext(), 0, intent, 0);
 
-        if (Build.VERSION.SDK_INT >= 23 && !Settings.System.canWrite(getActivity())) {
-            Log.d(TAG, "Send intent to grant");
-            Intent grantIntent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-            startActivity(grantIntent);
-        }
-
         try {
             mScreenOffTimeout = Settings.System.getInt(getActivity().getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT);
         } catch (Settings.SettingNotFoundException e) {
